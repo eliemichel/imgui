@@ -352,7 +352,7 @@ void ImGui_ImplWGPU_RenderDrawData(ImDrawData* draw_data, WGPURenderPassEncoder 
             nullptr,
             "Dear ImGui Vertex buffer",
             WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex,
-            fr->VertexBufferSize * sizeof(ImDrawVert),
+            (fr->VertexBufferSize * sizeof(ImDrawVert) + 3) & ~3,
             false
         };
         fr->VertexBuffer = wgpuDeviceCreateBuffer(g_wgpuDevice, &vb_desc);
@@ -376,7 +376,7 @@ void ImGui_ImplWGPU_RenderDrawData(ImDrawData* draw_data, WGPURenderPassEncoder 
             nullptr,
             "Dear ImGui Index buffer",
             WGPUBufferUsage_CopyDst | WGPUBufferUsage_Index,
-            fr->IndexBufferSize * sizeof(ImDrawIdx),
+            (fr->IndexBufferSize * sizeof(ImDrawIdx) + 3) & ~3,
             false
         };
         fr->IndexBuffer = wgpuDeviceCreateBuffer(g_wgpuDevice, &ib_desc);
@@ -533,7 +533,7 @@ static void ImGui_ImplWGPU_CreateUniformBuffer()
         nullptr,
         "Dear ImGui Uniform buffer",
         WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform,
-        sizeof(Uniforms),
+        (sizeof(Uniforms) + 3) & ~3,
         false
     };
     g_resources.Uniforms = wgpuDeviceCreateBuffer(g_wgpuDevice, &ub_desc);
