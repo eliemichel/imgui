@@ -30,6 +30,20 @@
 #include <limits.h>
 #include <webgpu/webgpu.h>
 
+// These differences of implementation should vanish as soon as WebGPU gets in version 1.0 stable
+#ifdef WEBGPU_BACKEND_WGPU
+#include <wgpu.h>
+#define wgpuBindGroupLayoutRelease wgpuBindGroupLayoutDrop
+#define wgpuBindGroupRelease wgpuBindGroupDrop
+#define wgpuRenderPipelineRelease wgpuRenderPipelineDrop
+#define wgpuSamplerRelease wgpuSamplerDrop
+#define wgpuShaderModuleRelease wgpuShaderModuleDrop
+#define wgpuTextureViewRelease wgpuTextureViewDrop
+#define wgpuTextureRelease wgpuTextureDrop
+#define wgpuBufferRelease wgpuBufferDrop
+#define wgpuQueueRelease(...)
+#endif // WEBGPU_BACKEND_WGPU
+
 // Dear ImGui prototypes from imgui_internal.h
 extern ImGuiID ImHashData(const void* data_p, size_t data_size, ImU32 seed = 0);
 
