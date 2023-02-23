@@ -83,6 +83,7 @@ static unsigned int     g_frameIndex = UINT_MAX;
 struct Uniforms
 {
     float MVP[4][4];
+    float gamma;
 };
 
 //-----------------------------------------------------------------------------
@@ -259,7 +260,37 @@ static void ImGui_ImplWGPU_SetupRenderState(ImDrawData* draw_data, WGPURenderPas
             { 0.0f,         0.0f,           0.5f,       0.0f },
             { (R+L)/(L-R),  (T+B)/(B-T),    0.5f,       1.0f },
         };
-        wgpuQueueWriteBuffer(g_defaultQueue, g_resources.Uniforms, 0, mvp, sizeof(mvp));
+        wgpuQueueWriteBuffer(g_defaultQueue, g_resources.Uniforms, offsetof(Uniforms, MVP), mvp, sizeof(Uniforms::MVP));
+        float gamma;
+        switch (g_renderTargetFormat) {
+        case WGPUTextureFormat_ASTC10x10UnormSrgb:
+        case WGPUTextureFormat_ASTC10x5UnormSrgb:
+        case WGPUTextureFormat_ASTC10x6UnormSrgb:
+        case WGPUTextureFormat_ASTC10x8UnormSrgb:
+        case WGPUTextureFormat_ASTC12x10UnormSrgb:
+        case WGPUTextureFormat_ASTC12x12UnormSrgb:
+        case WGPUTextureFormat_ASTC4x4UnormSrgb:
+        case WGPUTextureFormat_ASTC5x5UnormSrgb:
+        case WGPUTextureFormat_ASTC6x5UnormSrgb:
+        case WGPUTextureFormat_ASTC6x6UnormSrgb:
+        case WGPUTextureFormat_ASTC8x5UnormSrgb:
+        case WGPUTextureFormat_ASTC8x6UnormSrgb:
+        case WGPUTextureFormat_ASTC8x8UnormSrgb:
+        case WGPUTextureFormat_BC1RGBAUnormSrgb:
+        case WGPUTextureFormat_BC2RGBAUnormSrgb:
+        case WGPUTextureFormat_BC3RGBAUnormSrgb:
+        case WGPUTextureFormat_BC7RGBAUnormSrgb:
+        case WGPUTextureFormat_BGRA8UnormSrgb:
+        case WGPUTextureFormat_ETC2RGB8A1UnormSrgb:
+        case WGPUTextureFormat_ETC2RGB8UnormSrgb:
+        case WGPUTextureFormat_ETC2RGBA8UnormSrgb:
+        case WGPUTextureFormat_RGBA8UnormSrgb:
+            gamma = 2.2f;
+            break;
+        default:
+            gamma = 1.0f;
+        }
+        wgpuQueueWriteBuffer(g_defaultQueue, g_resources.Uniforms, offsetof(Uniforms, gamma), &gamma, sizeof(Uniforms::gamma));
     }
 
     // Setup viewport
@@ -510,13 +541,16 @@ bool ImGui_ImplWGPU_CreateDeviceObjects()
     graphics_pipeline_desc.multisample.alphaToCoverageEnabled = false;
 
     // Bind group layouts
-    WGPUBindGroupLayoutEntry common_bg_layout_entries[2] = {};
+    WGPUBindGroupLayoutEntry common_bg_layout_entries[3] = {};
     common_bg_layout_entries[0].binding = 0;
     common_bg_layout_entries[0].visibility = WGPUShaderStage_Vertex;
     common_bg_layout_entries[0].buffer.type = WGPUBufferBindingType_Uniform;
     common_bg_layout_entries[1].binding = 1;
     common_bg_layout_entries[1].visibility = WGPUShaderStage_Fragment;
     common_bg_layout_entries[1].sampler.type = WGPUSamplerBindingType_Filtering;
+    common_bg_layout_entries[2].binding = 2;
+    common_bg_layout_entries[2].visibility = WGPUShaderStage_Fragment;
+    common_bg_layout_entries[2].buffer.type = WGPUBufferBindingType_Uniform;
 
     WGPUBindGroupLayoutEntry image_bg_layout_entries[1] = {};
     image_bg_layout_entries[0].binding = 0;
@@ -525,7 +559,7 @@ bool ImGui_ImplWGPU_CreateDeviceObjects()
     image_bg_layout_entries[0].texture.viewDimension = WGPUTextureViewDimension_2D;
 
     WGPUBindGroupLayoutDescriptor common_bg_layout_desc = {};
-    common_bg_layout_desc.entryCount = 2;
+    common_bg_layout_desc.entryCount = 3;
     common_bg_layout_desc.entries = common_bg_layout_entries;
 
     WGPUBindGroupLayoutDescriptor image_bg_layout_desc = {};
@@ -607,8 +641,9 @@ bool ImGui_ImplWGPU_CreateDeviceObjects()
     // Create resource bind group
     WGPUBindGroupEntry common_bg_entries[] =
     {
-        { nullptr, 0, g_resources.Uniforms, 0, sizeof(Uniforms), 0, 0 },
+        { nullptr, 0, g_resources.Uniforms, offsetof(Uniforms, MVP), sizeof(Uniforms::MVP), 0, 0 },
         { nullptr, 1, 0, 0, 0, g_resources.Sampler, 0 },
+        { nullptr, 2, g_resources.Uniforms, offsetof(Uniforms, gamma), sizeof(Uniforms::gamma), 0, 0 },
     };
 
     WGPUBindGroupDescriptor common_bg_descriptor = {};
