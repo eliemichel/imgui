@@ -76,7 +76,6 @@ struct FrameResources
 struct Uniforms
 {
     float MVP[4][4];
-    float gamma;
     float Gamma;
 };
 
@@ -774,6 +773,7 @@ void ImGui_ImplWGPU_Shutdown()
 
     io.BackendRendererName = nullptr;
     io.BackendRendererUserData = nullptr;
+    io.BackendFlags &= ~ImGuiBackendFlags_RendererHasVtxOffset;
     IM_DELETE(bd);
 }
 
